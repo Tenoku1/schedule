@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Расписание">
+  <meta name="description" content="Расписание занятий группы ИП-391, 2-я подгруппа">
+  <title>ИП-391 • 2-я подгруппа</title>
+  <style>
+    :root {
+      --bg: #090a0f;
+      --card-bg: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --card-active: rgba(10, 132, 255, 0.12);
+      --card-active-border: rgba(10, 132, 255, 0.4);
+      --accent: #2997ff;
+      --accent-glow: rgba(41, 151, 255, 0.35);
+      --text: #f5f5f7;
+      --subtext: #86868b;
+      --tag-lk-bg: rgba(191, 90, 242, 0.18);
+      --tag-lk-text: #da8fff;
+      --tag-pz-bg: rgba(255, 159, 10, 0.18);
+      --tag-pz-text: #ffb340;
+      --tag-lr-bg: rgba(48, 209, 88, 0.18);
+      --tag-lr-text: #5ce681;
+      --tag-mixed-bg: rgba(100, 210, 255, 0.16);
+      --tag-mixed-text: #78d7ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      margin: 0;
+      padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 24px) 16px;
+      background: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(41, 151, 255, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(191, 90, 242, 0.08) 0px, transparent 50%);
+      background-attachment: fixed;
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Верхний блок заголовка */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .group-title {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin: 0;
+    }
+
+    .subgroup-label {
+      font-size: 13px;
+      color: var(--subtext);
+      margin-top: 3px;
+      font-weight: 500;
+    }
+
+    .live-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(20px);
+      border-radius: 30px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .live-pulse {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px var(--accent);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Переключатель 4 недель */
+    .week-selector {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      border-radius: 14px;
+      border: 1px solid var(--card-border);
+      margin-bottom: 12px;
+    }
+
+    .w-btn {
+      background: transparent;
+      border: none;
+      color: var(--subtext);
+      padding: 9px 0;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    .w-btn.active {
+      background: var(--card-bg);
+      color: var(--text);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .w-btn.today::after {
+      content: "";
+      position: absolute;
+      bottom: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--accent);
+    }
+
+    /* Дни недели */
+    .days-bar {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 18px;
+    }
+
+    .d-btn {
+      flex: 1;
+      padding: 9px 0;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+      color: var(--subtext);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .d-btn.active {
+      background: #ffffff;
+      color: #000000;
+      font-weight: 700;
+      box-shadow: 0 6px 18px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Карточки пар */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-radius: 18px;
+      padding: 16px;
+      margin-bottom: 12px;
+      transition: transform 0.15s ease, border-color 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card.now-ongoing {
+      background: var(--card-active);
+      border-color: var(--card-active-border);
+      box-shadow: 0 8px 24px var(--accent-glow);
+    }
+
+    .card.now-ongoing::before {
+      content: "ИДЁТ СЕЙЧАС";
+      position: absolute;
+      top: 10px;
+      right: 14px;
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: 0.5px;
+    }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .card-time {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--subtext);
+      letter-spacing: -0.2px;
+    }
+
+    .card-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .badge-lk { background: var(--tag-lk-bg); color: var(--tag-lk-text); }
+    .badge-pz { background: var(--tag-pz-bg); color: var(--tag-pz-text); }
+    .badge-lr { background: var(--tag-lr-bg); color: var(--tag-lr-text); }
+    .badge-lkpz { background: var(--tag-mixed-bg); color: var(--tag-mixed-text); }
+
+    .card-title {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.35;
+      margin: 0 0 10px 0;
+      letter-spacing: -0.3px;
+    }
+
+    .card-info {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      font-size: 13px;
+      color: var(--subtext);
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .info-item svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+      opacity: 0.7;
+    }
+
+    /* Заглушка, если занятий нет */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      border: 1px dashed var(--card-border);
+    }
+
+    .empty-icon {
+      font-size: 38px;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
+    .empty-text {
+      font-size: 15px;
+      color: var(--subtext);
+      font-weight: 500;
+    }
+
+    /* Кнопка сброса на сегодняшний день */
+    .reset-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      width: 100%;
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 14px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <h1 class="group-title">ИП-391</h1>
+      <div class="subgroup-label">2-я подгруппа • <span id="currentDateStr"></span></div>
+    </div>
+    <div class="live-pill">
+      <span class="live-pulse"></span>
+      <span id="cycleStatus">4 нед</span>
+    </div>
+  </header>
+
+  <!-- Селектор недель -->
+  <div class="week-selector" id="weekBar"></div>
+
+  <!-- Селектор дней -->
+  <div class="days-bar" id="dayBar"></div>
+
+  <!-- Список занятий -->
+  <div id="cardsList"></div>
+
+  <!-- Кнопка возврата к реальному дню -->
+  <button class="reset-btn" onclick="goToToday()">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/>
+    </svg>
+    Вернуться к текущему дню
+  </button>
+
+  <script>
+    // Точка отсчета 1-й недели семестра: Пн, 31 августа 2026 года
+    const SEMESTER_START = new Date(2026, 7, 31);
+
+    const schedule = {
+      1: {
+        1: [
+          { start: "08:00", end: "09:40", time: "08:00 – 09:40", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "lk" },
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "pz" }
+        ],
+        2: [
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "Стандартизация и сертификация ПО", room: "244", teacher: "Кудрицкая Е.А.", type: "lk" },
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Оптоволоконные инф. системы", room: "412", teacher: "Михневич С.Ю.", type: "lk" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Стандартизация и сертификация ПО", room: "430", teacher: "Кудрицкая Е.А.", type: "lk" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Системы коммутации и передачи", room: "428", teacher: "Нефедов С.Н.", type: "lk" }
+        ],
+        3: [
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Программно-аппаратные средства кибербезопасности", room: "402", teacher: "Бондаренко П.И.", type: "lk" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Программно-аппаратные средства кибербезопасности", room: "412", teacher: "Бондаренко П.И.", type: "lk" }
+        ],
+        4: [
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Технологии программирования моб. приложений", room: "104", teacher: "Бондаренко П.И.", type: "lk" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Методы машинного обучения (2 подгр)", room: "306", teacher: "", type: "lr" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "ПАСК (2 подгр)", room: "418", teacher: "", type: "lr" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Распределенные информационные системы", room: "410", teacher: "Полещук А.В.", type: "lk" }
+        ],
+        5: [
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "lk" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "pz" }
+        ],
+        6: [
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "РИС (Лабораторная)", room: "306", teacher: "", type: "lr" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "РИС (Лабораторная)", room: "306", teacher: "", type: "lr" }
+        ]
+      },
+      2: {
+        1: [
+          { start: "08:00", end: "09:40", time: "08:00 – 09:40", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "lk" },
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "pz" }
+        ],
+        2: [
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "Стандартизация и сертификация ПО", room: "244", teacher: "Кудрицкая Е.А.", type: "lk" },
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Оптоволоконные инф. системы", room: "412", teacher: "Михневич С.Ю.", type: "lk" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Оптоволоконные инф. системы", room: "106", teacher: "Жданович С.В.", type: "pz" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Стандартизация и сертификация ПО", room: "430", teacher: "Кудрицкая Е.А.", type: "pz" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Системы коммутации и передачи", room: "106", teacher: "Нефедов С.Н.", type: "lk" }
+        ],
+        3: [
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Системы коммутации и передачи", room: "410", teacher: "Нефедов С.Н.", type: "pz" }
+        ],
+        4: [
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Технологии программирования моб. приложений", room: "104", teacher: "Бондаренко П.И.", type: "lk" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Методы машинного обучения", room: "306", teacher: "Колодный В.Б.", type: "lk" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Методы машинного обучения", room: "306", teacher: "Колодный В.Б.", type: "pz" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Распределенные информационные системы", room: "306", teacher: "Полещук А.В.", type: "lk" }
+        ],
+        5: [
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "lk" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "pz" }
+        ],
+        6: [
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "ТПАМП (2 подгр)", room: "214", teacher: "", type: "lr" },
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "ТПАМП (2 подгр)", room: "214", teacher: "", type: "lr" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Распределенные информационные системы", room: "306", teacher: "Полещук А.В.", type: "pz" }
+        ]
+      },
+      3: {
+        1: [
+          { start: "08:00", end: "09:40", time: "08:00 – 09:40", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "lk" },
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "pz" },
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "СКИП (2 подгр)", room: "210", teacher: "", type: "lr" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "СКИП (2 подгр)", room: "210", teacher: "", type: "lr" }
+        ],
+        2: [
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Оптоволоконные инф. системы", room: "412", teacher: "Михневич С.Ю.", type: "lk" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "ОИС (2 подгр)", room: "106", teacher: "", type: "lr" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Стандартизация и сертификация ПО", room: "430", teacher: "Кудрицкая Е.А.", type: "lk" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Системы коммутации и передачи", room: "428", teacher: "Нефедов С.Н.", type: "lk" }
+        ],
+        3: [
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Программно-аппаратные средства кибербезопасности", room: "402", teacher: "Бондаренко П.И.", type: "lk" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Технологии программирования моб. приложений", room: "412", teacher: "Бондаренко П.И.", type: "pz" }
+        ],
+        4: [
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Технологии программирования моб. приложений", room: "104", teacher: "Бондаренко П.И.", type: "lk" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "ПАСК (2 подгр)", room: "418", teacher: "", type: "lr" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Методы машинного обучения (2 подгр)", room: "306", teacher: "", type: "lr" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Распределенные информационные системы", room: "410", teacher: "Полещук А.В.", type: "lk" }
+        ],
+        5: [
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "lk" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "pz" }
+        ],
+        6: [
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "РИС (Лабораторная)", room: "306", teacher: "", type: "lr" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "РИС (Лабораторная)", room: "306", teacher: "", type: "lr" }
+        ]
+      },
+      4: {
+        1: [
+          { start: "08:00", end: "09:40", time: "08:00 – 09:40", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "lk" },
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "Основы теории систем и системного анализа", room: "244", teacher: "Михневич С.О.", type: "pz" }
+        ],
+        2: [
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Оптоволоконные инф. системы", room: "412", teacher: "Михневич С.Ю.", type: "lk" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Стандартизация и сертификация ПО", room: "430", teacher: "Кудрицкая Е.А.", type: "pz" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Системы коммутации и передачи", room: "106", teacher: "Нефедов С.Н.", type: "lk" }
+        ],
+        3: [
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Системы коммутации и передачи", room: "410", teacher: "Нефедов С.Н.", type: "pz" }
+        ],
+        4: [
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "Технологии программирования моб. приложений", room: "104", teacher: "Бондаренко П.И.", type: "lk" },
+          { start: "14:10", end: "15:50", time: "14:10 – 15:50", title: "Методы машинного обучения", room: "306", teacher: "Колодный В.Б.", type: "lk" },
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Методы машинного обучения", room: "306", teacher: "Колодный В.Б.", type: "pz" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Распределенные информационные системы", room: "306", teacher: "Полещук А.В.", type: "lk" }
+        ],
+        5: [
+          { start: "16:20", end: "18:00", time: "16:20 – 18:00", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "lk" },
+          { start: "18:15", end: "19:55", time: "18:15 – 19:55", title: "Криптографические методы", room: "428", teacher: "Гладун П.И.", type: "pz" }
+        ],
+        6: [
+          { start: "09:55", end: "11:35", time: "09:55 – 11:35", title: "ТПАМП (2 подгр)", room: "214", teacher: "", type: "lr" },
+          { start: "12:15", end: "13:55", time: "12:15 – 13:55", title: "ТПАМП (2 подгр)", room: "214", teacher: "", type: "lr" }
+        ]
+      }
+    };
+
+    const makeLesson = (start, end, title, room, teacher, type) => ({
+      start, end, time: `${start} – ${end}`, title, room, teacher, type
+    });
+
+    // ИП-391, 2-я подгруппа. Сверено с расписанием от 01.09.2026.
+    const monday = [
+      makeLesson("08:00", "09:40", "Основы теории систем и системного анализа", "244", "Михневич С.Ю.", "lk"),
+      makeLesson("09:55", "11:35", "Основы теории систем и системного анализа", "244", "Михневич С.Ю.", "pz")
+    ];
+    const friday = room => [
+      makeLesson("14:10", "15:50", "Распределённые информационные системы", room, "Полещук А.В.", "lk"),
+      makeLesson("16:20", "18:00", "Криптографические методы", "428", "Гладун П.И.", "lk"),
+      makeLesson("18:15", "19:55", "Криптографические методы", "428", "Гладун П.И.", "pz")
+    ];
+
+    Object.assign(schedule, {
+      1: {
+        1: monday,
+        2: [],
+        3: [
+          makeLesson("09:55", "11:35", "Стандартизация и сертификация программного обеспечения", "430", "Кудрицкая Е.А.", "lk"),
+          makeLesson("12:15", "13:55", "Системы коммутации и передачи", "428", "Нефедов С.Н.", "lk"),
+          makeLesson("14:10", "15:50", "Программно-аппаратные средства кибербезопасности", "402", "Бондаренко П.И.", "lk"),
+          makeLesson("16:20", "18:00", "Программно-аппаратные средства кибербезопасности", "412", "Бондаренко П.И.", "lk")
+        ],
+        4: [
+          makeLesson("14:10", "15:50", "Технологии программирования для мобильных приложений", "104", "Бондаренко П.И.", "lk"),
+          makeLesson("16:20", "18:00", "ПАСК", "418", "", "lr"),
+          makeLesson("18:15", "19:55", "ПАСК", "418", "", "lr")
+        ],
+        5: friday("410"),
+        6: []
+      },
+      2: {
+        1: monday,
+        2: [
+          makeLesson("09:55", "11:35", "Стандартизация и сертификация программного обеспечения", "244", "Кудрицкая Е.А.", "lkpz"),
+          makeLesson("12:15", "13:55", "Оптоволоконные информационные системы", "412", "Михневич С.Ю.", "lk"),
+          makeLesson("14:10", "15:50", "Оптоволоконные информационные системы", "106", "Жданович С.В.", "pz")
+        ],
+        3: [
+          makeLesson("09:55", "11:35", "Стандартизация и сертификация программного обеспечения", "430", "Кудрицкая Е.А.", "pz"),
+          makeLesson("12:15", "13:55", "Системы коммутации и передачи", "106", "Нефедов С.Н.", "lk"),
+          makeLesson("14:10", "15:50", "Системы коммутации и передачи", "410", "Нефедов С.Н.", "pz")
+        ],
+        4: [
+          makeLesson("14:10", "15:50", "Технологии программирования для мобильных приложений", "104", "Бондаренко П.И.", "lk"),
+          makeLesson("16:20", "18:00", "Методы машинного обучения", "306", "Колодный В.Б.", "lk"),
+          makeLesson("18:15", "19:55", "Методы машинного обучения", "306", "Колодный В.Б.", "pz")
+        ],
+        5: friday("306"),
+        6: [
+          makeLesson("09:55", "11:35", "Технологии программирования для мобильных приложений", "214", "", "lr"),
+          makeLesson("12:15", "13:55", "Технологии программирования для мобильных приложений", "214", "", "lr"),
+          makeLesson("14:10", "15:50", "Распределённые информационные системы", "306", "Полещук А.В.", "pz"),
+          makeLesson("16:20", "18:00", "Распределённые информационные системы", "306", "Полещук А.В.", "pz")
+        ]
+      },
+      3: {
+        1: [...monday,
+          makeLesson("12:15", "13:55", "СКиП", "210", "", "lr"),
+          makeLesson("14:10", "15:50", "СКиП", "210", "", "lr")
+        ],
+        2: [
+          makeLesson("12:15", "13:55", "Оптоволоконные информационные системы", "412", "Михневич С.Ю.", "lk"),
+          makeLesson("14:10", "15:50", "Оптоволоконные информационные системы", "106", "", "lr"),
+          makeLesson("16:20", "18:00", "Оптоволоконные информационные системы", "106", "", "lr")
+        ],
+        3: [
+          makeLesson("09:55", "11:35", "Стандартизация и сертификация программного обеспечения", "430", "Кудрицкая Е.А.", "lk"),
+          makeLesson("12:15", "13:55", "Системы коммутации и передачи", "428", "Нефедов С.Н.", "lk"),
+          makeLesson("14:10", "15:50", "Программно-аппаратные средства кибербезопасности", "402", "Бондаренко П.И.", "lk"),
+          makeLesson("16:20", "18:00", "Технологии программирования для мобильных приложений", "412", "Бондаренко П.И.", "pz")
+        ],
+        4: [
+          makeLesson("14:10", "15:50", "Технологии программирования для мобильных приложений", "104", "Бондаренко П.И.", "lk"),
+          makeLesson("16:20", "18:00", "Методы машинного обучения", "306", "", "lr"),
+          makeLesson("18:15", "19:55", "Методы машинного обучения", "306", "", "lr")
+        ],
+        5: friday("410"),
+        6: [
+          makeLesson("14:10", "15:50", "Распределённые информационные системы", "306", "", "lr"),
+          makeLesson("16:20", "18:00", "Распределённые информационные системы", "306", "", "lr")
+        ]
+      },
+      4: {
+        1: monday,
+        2: [makeLesson("12:15", "13:55", "Оптоволоконные информационные системы", "412", "Михневич С.Ю.", "lk")],
+        3: [
+          makeLesson("09:55", "11:35", "Стандартизация и сертификация программного обеспечения", "430", "Кудрицкая Е.А.", "pz"),
+          makeLesson("12:15", "13:55", "Системы коммутации и передачи", "106", "Нефедов С.Н.", "lk"),
+          makeLesson("14:10", "15:50", "Системы коммутации и передачи", "410", "Нефедов С.Н.", "pz")
+        ],
+        4: [
+          makeLesson("14:10", "15:50", "Технологии программирования для мобильных приложений", "104", "Бондаренко П.И.", "lk"),
+          makeLesson("16:20", "18:00", "Методы машинного обучения", "306", "Колодный В.Б.", "lk"),
+          makeLesson("18:15", "19:55", "Методы машинного обучения", "306", "Колодный В.Б.", "pz")
+        ],
+        5: friday("306"),
+        6: [
+          makeLesson("09:55", "11:35", "Технологии программирования для мобильных приложений", "214", "", "lr"),
+          makeLesson("12:15", "13:55", "Технологии программирования для мобильных приложений", "214", "", "lr")
+        ]
+      }
+    });
+
+    function getLiveWeek(date) {
+      const msInWeek = 7 * 24 * 60 * 60 * 1000;
+      const diff = Math.floor((date - SEMESTER_START) / msInWeek);
+      return ((diff % 4) + 4) % 4 + 1;
+    }
+
+    const todayDate = new Date();
+    const isSunday = (todayDate.getDay() === 0);
+    const targetDate = isSunday ? new Date(todayDate.getTime() + 24 * 60 * 60 * 1000) : todayDate;
+
+    const realLiveWeek = getLiveWeek(targetDate);
+    const realLiveDay = isSunday ? 1 : todayDate.getDay();
+
+    let viewWeek = realLiveWeek;
+    let viewDay = realLiveDay;
+
+    function isLessonOngoing(lesson, w, d) {
+      if (todayDate.getDay() === 0 || w !== realLiveWeek || d !== todayDate.getDay()) return false;
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+      const [sh, sm] = lesson.start.split(':').map(Number);
+      const [eh, em] = lesson.end.split(':').map(Number);
+      const startMin = sh * 60 + sm;
+      const endMin = eh * 60 + em;
+
+      return currentMinutes >= startMin && currentMinutes <= endMin;
+    }
+
+    function render() {
+      // Статус недели в шапке
+      document.getElementById('cycleStatus').innerText = `${realLiveWeek}-я неделя`;
+      
+      const dayOptions = { month: 'long', day: 'numeric', weekday: 'short' };
+      document.getElementById('currentDateStr').innerText = todayDate.toLocaleDateString('ru-RU', dayOptions);
+
+      // Кнопки 4 недель
+      const weekBar = document.getElementById('weekBar');
+      weekBar.innerHTML = [1, 2, 3, 4].map(w => `
+        <button class="w-btn ${w === viewWeek ? 'active' : ''} ${w === realLiveWeek ? 'today' : ''}" 
+                onclick="setWeek(${w})">
+          ${w} нед
+        </button>
+      `).join('');
+
+      // Кнопки дней
+      const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+      const dayBar = document.getElementById('dayBar');
+      dayBar.innerHTML = dayNames.map((d, i) => `
+        <button class="d-btn ${i + 1 === viewDay ? 'active' : ''}" onclick="setDay(${i + 1})">
+          ${d}
+        </button>
+      `).join('');
+
+      // Контейнер списка
+      const container = document.getElementById('cardsList');
+      const lessons = (schedule[viewWeek] && schedule[viewWeek][viewDay]) || [];
+
+      if (lessons.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">☕️</div>
+            <div class="empty-text">Пар нет — свободный день!</div>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = lessons.map(l => {
+        let badgeClass = "badge-lk";
+        let badgeText = "Лекция";
+        if (l.type === "pz") { badgeClass = "badge-pz"; badgeText = "Практика"; }
+        if (l.type === "lr") { badgeClass = "badge-lr"; badgeText = "Лабораторная"; }
+        if (l.type === "lkpz") { badgeClass = "badge-lkpz"; badgeText = "Лекция / практика"; }
+
+        const ongoing = isLessonOngoing(l, viewWeek, viewDay);
+
+        return `
+          <div class="card ${ongoing ? 'now-ongoing' : ''}">
+            <div class="card-top">
+              <span class="card-time">${l.time}</span>
+              <span class="card-badge ${badgeClass}">${badgeText}</span>
+            </div>
+            <h2 class="card-title">${l.title}</h2>
+            <div class="card-info">
+              <div class="info-item">
+                <svg viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 0 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>
+                <span>ауд. ${l.room}</span>
+              </div>
+              ${l.teacher ? `
+                <div class="info-item">
+                  <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                  <span>${l.teacher}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function setWeek(w) { viewWeek = w; render(); }
+    function setDay(d) { viewDay = d; render(); }
+    function goToToday() {
+      viewWeek = realLiveWeek;
+      viewDay = realLiveDay;
+      render();
+    }
+
+    render();
+  </script>
+</body>
+</html>
